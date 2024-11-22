@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-This repository contains the code to reproduce the numbers reported in the paper [link]. It contains the proposed architectural change to obtain 2:4 sparse convolutional layers, the original and modified architectures, data loading utilites, the training script and the execution shell script. Some assets provided in the repository are derived from previously existing and licensed assets. Refer to the source code to view details.
+This repository contains the code to reproduce the numbers reported in the paper [Inducing Semi-Structured Sparsity by Masking for Efficient Model Inference in Convolutional Networks](https://arxiv.org/pdf/2411.00288). It contains the proposed architectural change to obtain 2:4 sparse convolutional layers, the original and modified architectures, data loading utilites, the training script and the execution shell script. Some assets provided in the repository are derived from previously existing and licensed assets. Refer to the source code to view details.
 
 ---
 
