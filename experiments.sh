@@ -1,5 +1,3 @@
-# TODO: complete for convnexts and potentially add VGGs
-
 # this script contains the commands for all figures reported in the paper and not drawn from a previous publication
 # the commands depend on three directories:
 # (1) path_to_weights_dir: the directory containing the pre-trained weights for the models
