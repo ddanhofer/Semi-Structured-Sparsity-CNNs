@@ -61,18 +61,6 @@ from resnet.resnet_sparse import resnet34 as resnet34_sparse
 from resnet.resnet_sparse import resnet50 as resnet50_sparse
 from linearization.utils_2 import rename_weights_resnet
 
-from vgg.vgg import vgg11, vgg11_bn, vgg13_bn, vgg16_bn, vgg19_bn
-from vgg.vgg_sparse import vgg11 as vgg11_sparse
-from vgg.vgg_sparse import vgg11_bn as vgg11_bn_sparse
-from vgg.vgg_sparse import vgg13_bn as vgg13_bn_sparse
-from vgg.vgg_sparse import vgg16_bn as vgg16_bn_sparse
-from vgg.vgg_sparse import vgg19_bn as vgg19_bn_sparse
-from linearization.utils_2 import rename_weights_vgg
-
-from efficientnet.efficientnet import efficientnet_v2_s
-from efficientnet.efficientnet_sparse import efficientnet_v2_s as efficientnet_v2_s_sparse
-from linearization.utils_2 import rename_weights_efficientnet
-
 from convnext.convnext import convnext_tiny, convnext_small
 from convnext.convnext_sparse import convnext_tiny as convnext_tiny_sparse
 from convnext.convnext_sparse import convnext_small as convnext_small_sparse
@@ -331,11 +319,8 @@ def main(args):
     # modified here to use custom model load operations!
     # apply linearization and apex here
     resnets = ['resnet18', 'resnet34', 'resnet50']
-    vggs = ['vgg11', 'vgg11_bn', 'vgg13_bn', 'vgg16_bn', 'vgg19_bn']
-    efficientnets = ['efficientnet_S']
-    shufflenets = ['shuffleV2_x2_0']
     convnexts = ['convnext_T', 'convnext_S']
-    known_models = [*resnets, *vggs, *shufflenets, *efficientnets, *convnexts]
+    known_models = [*resnets, *convnexts]
     
     gumbel_2x4 = args.sparsity == 'gumbel_2x4'
     if not(args.model in known_models):
@@ -368,80 +353,7 @@ def main(args):
             model.load_state_dict(renamed_dict, strict=False)    
         else:
             raise ValueError("Unknown or unimplemented sparsity type.")
-        
-    elif args.model in vggs:
-        print(f'Loading model {args.model} with weights {args.weights} and sparsity {args.sparsity}.')
-        if not os.path.exists(args.weights):
-            raise ValueError(f'Weights file {args.weights} does not exist!')
-        
-        model_to_func = {
-            'vgg11': vgg11,
-            'vgg11_bn': vgg11_bn,
-            'vgg13_bn': vgg13_bn,
-            'vgg16_bn': vgg16_bn,
-            'vgg19_bn': vgg19_bn
-        }
-        sparse_model_to_func = {
-            'vgg11': vgg11_sparse,
-            'vgg11_bn': vgg11_bn_sparse,
-            'vgg13_bn': vgg13_bn_sparse,
-            'vgg16_bn': vgg16_bn_sparse,
-            'vgg19_bn': vgg19_bn_sparse
-        }
-        
-        if args.sparsity == 'none':
-            model = model_to_func[args.model]()
-            model.load_state_dict(torch.load(args.weights))
-        elif args.sparsity in ['sparse_2x4', 'gumbel_2x4']:
-            model = sparse_model_to_func[args.model](sparse_2x4=True, gumbel_2x4=gumbel_2x4, augment_2x4=args.aug_for_2x4, blocked=args.blocked_mmm, ignore_linear=not(args.override_ignore_linear))
-            renamed_dict = rename_weights_vgg(torch.load(args.weights), blocked=args.blocked_mmm)
-            model.load_state_dict(renamed_dict, strict=False)
-        else:
-            raise ValueError("Unknown or unimplemented linearization type.")
-
-    elif args.model in shufflenets:
-        print(f'Loading model {args.model} with weights {args.weights} and sparsity {args.sparsity}.')
-        if not os.path.exists(args.weights):
-            raise ValueError(f'Weights file {args.weights} does not exist!')
-
-        model_to_func = {
-            'shuffleV2_x2_0': shufflenet_v2_x2_0,
-        }
-        sparse_model_to_func = {
-            'shuffleV2_x2_0': shufflenet_v2_x2_0_sparse,
-        }
-        
-        orig_arch = model_to_func[args.model]()
-        original_state = torch.load(args.weights)
-        
-        if args.sparsity == 'none':
-            model = orig_arch
-            model.load_state_dict(original_state)
-        elif args.sparsity in ['sparse_2x4', 'gumbel_2x4']:
-            sparse_arch = sparse_model_to_func[args.model](sparse_2x4=True, gumbel_2x4=gumbel_2x4, augment_2x4=args.aug_for_2x4, blocked=args.blocked_mmm)
-            sparse_dict = rename_weights_shufflenet(original_state, original_arch=orig_arch, sparse_arch=sparse_arch, 
-                                                      blocked=args.blocked_mmm, augment_2x4=(args.aug_for_2x4 and gumbel_2x4))
-            model = sparse_arch
-            model.load_state_dict(sparse_dict, strict=False)
-    
-    elif args.model == 'efficientnet_S':
-        print(f'Loading model {args.model} with weights {args.weights} and sparsity {args.sparsity}.')
-        if not os.path.exists(args.weights):
-            raise ValueError(f'Weights file {args.weights} does not exist!')
-        
-        orig_arch = efficientnet_v2_s()
-        original_state = torch.load(args.weights)
-        
-        if args.sparsity == 'none':
-            model = orig_arch
-            model.load_state_dict(original_state)
-        elif args.sparsity in ['sparse_2x4', 'gumbel_2x4']:
-            sparse_arch = efficientnet_v2_s_sparse(sparse_2x4=True, gumbel_2x4=gumbel_2x4, augment_2x4=args.aug_for_2x4, blocked=args.blocked_mmm)
-            sparse_dict = rename_weights_efficientnet(original_state, original_arch=orig_arch, sparse_arch=sparse_arch, 
-                                                      blocked=args.blocked_mmm, augment_2x4=(args.aug_for_2x4 and gumbel_2x4))
-            model = sparse_arch
-            model.load_state_dict(sparse_dict, strict=False)
-    
+          
     elif args.model in convnexts:
         print(f'Loading model {args.model} with weights {args.weights} and sparsity {args.sparsity}.')
         if not os.path.exists(args.weights):
